@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: siao_postgres
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      POSTGRES_USER: ${DB_USERNAME:-siao_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-siao_pass}
+      POSTGRES_DB: ${DB_DATABASE:-siao_db}
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-siao_user} -d ${DB_DATABASE:-siao_db}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: siao_api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+    ports:
+      - '${PORT:-3000}:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
